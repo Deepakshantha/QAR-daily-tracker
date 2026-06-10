@@ -19,7 +19,7 @@ DEFAULT_NAMES = [
     "Anshuman Dey",
     "Anusree Anil",
     "Archana Venkatesan",
-    "Ashwin Kumar",
+    "Ashwin Kumar S",
     "Avi Sharma",
     "Ayyapparaj Dhamodharan",
     "Bala Thirupathi Raaja",
@@ -140,15 +140,22 @@ def fuzzy_match(value, valid_list, threshold=FUZZY_THRESHOLD):
 
 
 def get_date_info():
-    today    = datetime.today()
-    target   = today - timedelta(days=1)
-    date_str = target.strftime("%d-%b-%Y")
-    year     = target.year
+    """Return (target_date_str, month_str, year_int) based on today in IST."""
+    from zoneinfo import ZoneInfo
+    IST   = ZoneInfo("Asia/Kolkata")
+    today  = datetime.now(IST)
+    target = today - timedelta(days=1)
+    date_str  = target.strftime("%d-%b-%Y")
+    year      = target.year
+
+    # Month rule: if today is the 1st, use previous month
     if today.day == 1:
-        prev      = today.replace(day=1) - timedelta(days=1)
-        month_str = prev.strftime("%B")
+        first_of_month = today.replace(day=1)
+        prev_month     = first_of_month - timedelta(days=1)
+        month_str      = prev_month.strftime("%B")
     else:
         month_str = target.strftime("%B")
+
     return date_str, month_str, year
 
 
