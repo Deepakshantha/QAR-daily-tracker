@@ -145,16 +145,16 @@ def get_date_info():
     IST   = ZoneInfo("Asia/Kolkata")
     today  = datetime.now(IST)
     target = today - timedelta(days=1)
-    date_str  = target.strftime("%d-%b-%Y")
+    date_str  = f"{target.month}/{target.day}/{target.year}"
     year      = target.year
 
     # Month rule: if today is the 1st, use previous month
     if today.day == 1:
         first_of_month = today.replace(day=1)
         prev_month     = first_of_month - timedelta(days=1)
-        month_str      = prev_month.strftime("%B")
+        month_str      = prev_month.strftime("%b")
     else:
-        month_str = target.strftime("%B")
+        month_str = target.strftime("%b")
 
     return date_str, month_str, year
 
@@ -237,10 +237,11 @@ def clean_tracker(raw_df, valid_names, valid_report_names,
     df["Feedback Delivered by"] = "-"
     df["Year"]                  = current_year
 
-    # 13. DROP flagged rows
-    dropped = int(drop.sum())
-    df      = df[~drop].reset_index(drop=True)
-    return df, dropped
+    # 13. DROP flagged rows — keep the removed rows (raw values) for the Invalid data sheet
+    dropped    = int(drop.sum())
+    invalid_df = raw_df.loc[drop, EXPECTED_COLUMNS].reset_index(drop=True)
+    df         = df[~drop].reset_index(drop=True)
+    return df, dropped, invalid_df
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -287,7 +288,7 @@ def build_status_chart_data(df):
 #  EXCEL EXPORT — 3 sheets
 # ══════════════════════════════════════════════════════════════════════════════
 
-def to_excel_bytes(df, pivot, tracker_sheet_name):
+def to_excel_bytes(df, pivot, tracker_sheet_name, invalid_df):
     from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
     from openpyxl.chart import BarChart, Reference
@@ -352,7 +353,30 @@ def to_excel_bytes(df, pivot, tracker_sheet_name):
         wp.row_dimensions[1].height = 30
         wp.freeze_panes = "A2"
 
-        # Sheet 3: Charts
+        # Sheet 3: Invalide data (rows removed during cleaning)
+        invalid_df.to_excel(writer, index=False, sheet_name="Invalid data")
+        wi = writer.sheets["Invalid data"]
+        ih_fill = PatternFill("solid", fgColor="7A1F1F")
+        ih_font = Font(bold=True, color="FFFFFF", name="Calibri", size=11)
+        ia_fill = PatternFill("solid", fgColor="FDECEC")
+        iw_fill = PatternFill("solid", fgColor="FFFFFF")
+        for cell in wi[1]:
+            cell.fill = ih_fill; cell.font = ih_font
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.border = border
+        for row_idx, row in enumerate(wi.iter_rows(min_row=2), start=2):
+            bf = ia_fill if row_idx % 2 == 0 else iw_fill
+            for cell in row:
+                cell.fill = bf; cell.font = Font(name="Calibri", size=10)
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+                cell.border = border
+        for cc in wi.columns:
+            mx = max((len(str(c.value)) if c.value else 0 for c in cc), default=10)
+            wi.column_dimensions[get_column_letter(cc[0].column)].width = min(mx+4, 32)
+        wi.row_dimensions[1].height = 30
+        wi.freeze_panes = "A2"
+
+        # Sheet 4: Charts
         wb = writer.book
         wc = wb.create_sheet("Charts")
         th_fill = PatternFill("solid", fgColor="1F3864")
@@ -512,8 +536,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 date_str, month_str, current_year = get_date_info()
-output_filename  = f"QAR Daily Tracker ({date_str}).xlsx"
-tracker_tab_name = f"QAR Daily Tracker {date_str}"
+output_filename  = f"QAR Daily Tracker ({date_str.replace('/', '-')}).xlsx"
+tracker_tab_name = f"QAR Daily Tracker {date_str.replace('/', '-')}"
 
 st.markdown("""
 <div class="card card-accent">
@@ -587,12 +611,12 @@ if uploaded_file:
         </div>""", unsafe_allow_html=True)
         if st.button("🧹  Clean Tracker", use_container_width=True, type="primary"):
             with st.spinner("Cleaning data · building pivot · generating charts…"):
-                cleaned_df, dropped = clean_tracker(
+                cleaned_df, dropped, invalid_df = clean_tracker(
                     raw_df.copy(), valid_names=valid_names,
                     valid_report_names=valid_reports, valid_regions=valid_regions,
                     valid_statuses=valid_status, threshold=sensitivity)
                 pivot_df    = build_pivot(cleaned_df)
-                excel_bytes = to_excel_bytes(cleaned_df, pivot_df, tracker_tab_name)
+                excel_bytes = to_excel_bytes(cleaned_df, pivot_df, tracker_tab_name, invalid_df)
             warn_html = (f'<div class="warn-note">🗑️ {dropped} row(s) removed — '
                          f'empty/unrecognised values in key columns.</div>' if dropped else "")
             st.markdown(f"""
@@ -607,12 +631,15 @@ if uploaded_file:
             with col2:
                 with st.expander("📊 Preview pivot table"):
                     st.dataframe(pivot_df, use_container_width=True, hide_index=True)
+            if dropped:
+                with st.expander(f"🗑️ Preview invalid/removed rows ({dropped})"):
+                    st.dataframe(invalid_df, use_container_width=True)
             st.markdown('<hr class="hdiv">', unsafe_allow_html=True)
             st.markdown("""
             <div class="card card-accent">
               <div class="step-num">Step 03</div>
               <div class="card-title">Download Cleaned Tracker</div>
-              <div class="card-desc">Three sheets: <b>Cleaned Data</b> · <b>Pivot</b> · <b>Charts</b>.</div>
+              <div class="card-desc">Four sheets: <b>Cleaned Data</b> · <b>Pivot</b> · <b>Invalid data</b> · <b>Charts</b>.</div>
             </div>""", unsafe_allow_html=True)
             st.download_button(
                 label=f"⬇️   Download  {output_filename}", data=excel_bytes,
