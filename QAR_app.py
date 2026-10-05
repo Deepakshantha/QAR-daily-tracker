@@ -192,7 +192,20 @@ DEFAULT_NAMES = [
 DEFAULT_REPORT_NAMES = [
     "Missing Copy Report", "DEX Advanced Find Report",
     "Missing Script Report", "SET Discrepancy Report",
-    "Posting", "Post-Log", "Pre-Log",
+    "Posting", "Post-Log", "Pre-Log","SET Discrep",
+ "Enterprise Missing Copy Report",
+ "10 Day Missing Linear Copy",
+ "Missing Digital Copy",
+ "Set Bulk Report 1",
+ "Set Bulk Report 2",
+ "Set Bulk Report 3",
+ "Set Bulk Report Refresh",
+ "SNAP Pacing",
+ "SNAP Completed",
+ "SNAP Inactive",
+ "Missing Scripts",
+ "Digital Audit",
+ "CM Dashboard",  
 ]
 
 DEFAULT_MARKETS_REGIONS = [
