@@ -205,7 +205,7 @@ DEFAULT_REPORT_NAMES = [
     "SNAP Pacing",
 ]
 
-DEFAULT_MARKETS_REGIONS = [
+DEFAULT_REGIONS = [
     "Atlantic", "Northeast", "Midwest", "Southeast", "Central", "Pacific", "All",
 ]
 
@@ -675,7 +675,7 @@ with st.expander("⚙️ Customise lookup lists & sensitivity"):
     c1, c2 = st.columns(2)
     with c1:
         names_txt   = st.text_area("✅ Valid Names (one per line)",        value="\n".join(DEFAULT_NAMES),           height=200)
-        regions_txt = st.text_area("✅ Valid Markets / Regions (one per line)", value="\n".join(DEFAULT_MARKETS_REGIONS), height=140)
+        regions_txt = st.text_area("✅ Valid Markets / Regions (one per line)", value="\n".join(DEFAULT_REGIONS), height=140)
     with c2:
         reports_txt = st.text_area("✅ Valid Report Names (one per line)", value="\n".join(DEFAULT_REPORT_NAMES),    height=160)
         status_txt  = st.text_area("✅ Valid Statuses (one per line)",     value="\n".join(DEFAULT_STATUSES),        height=160)
