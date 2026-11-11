@@ -214,7 +214,7 @@ DEFAULT_STATUSES = [
 ]
 
 EXPECTED_COLUMNS = [
-    "Date", "Month", "Name", "Report Name", "Markets / Regions",
+    "Date", "Month", "Name", "Report Name", "Regions",
     "Contract", "Status", "CM Action Reason", "TAT Miss", "Quality Met",
     "Error Type", "Error Comments", "Revenue Impact", "Feedback Delivered by",
     "Year",
@@ -297,13 +297,13 @@ def clean_tracker(raw_df, valid_names, valid_report_names,
     df["Report Name"] = report_res.apply(lambda x: x[0])
     drop             |= report_res.apply(lambda x: x[1])
 
-    # 5. MARKETS / REGIONS — empty/unknown → drop
+    # 5. REGIONS — empty/unknown → drop
     def process_region(val):
         if is_empty(val): return None, True
         matched, good = fuzzy_match(val, valid_regions, threshold)
         return (matched, False) if good else (None, True)
-    region_res              = df["Markets / Regions"].apply(process_region)
-    df["Markets / Regions"] = region_res.apply(lambda x: x[0])
+    region_res              = df["Regions"].apply(process_region)
+    df["Regions"] = region_res.apply(lambda x: x[0])
     drop                   |= region_res.apply(lambda x: x[1])
 
     # 6. CONTRACT — leave as-is; empty → drop
@@ -366,8 +366,8 @@ def build_pivot(df):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def build_region_chart_data(df):
-    d = df[~df["Markets / Regions"].isin(["-", None])].copy()
-    return (d.groupby("Markets / Regions", as_index=False)
+    d = df[~df["Regions"].isin(["-", None])].copy()
+    return (d.groupby("Regions", as_index=False)
              .agg(**{"Contract Count": ("Contract", "count")})
              .sort_values("Contract Count", ascending=False).reset_index(drop=True))
 
@@ -540,10 +540,10 @@ def to_excel_bytes(df, pivot, tracker_sheet_name, invalid_df):
 
         # Chart 1 — Region
         rd = build_region_chart_data(df)
-        rr = [(r["Markets / Regions"], int(r["Contract Count"])) for _, r in rd.iterrows()]
-        rh, re, rs = wt(wc, 1, 1, ["Markets / Regions","Contract Count"], rr, "Markets / Regions Summary")
+        rr = [(r["Regions"], int(r["Contract Count"])) for _, r in rd.iterrows()]
+        rh, re, rs = wt(wc, 1, 1, ["Regions","Contract Count"], rr, "Regions Summary")
         c1 = BarChart(); c1.type = "col"; c1.grouping = "clustered"
-        sc(c1, "Markets / Regions — Contract Count", "REGION", "CONTRACT COUNT", False)
+        sc(c1, "Regions — Contract Count", "REGION", "CONTRACT COUNT", False)
         c1.add_data(Reference(wc, min_col=rs+1, min_row=rh, max_row=re), titles_from_data=True)
         c1.set_categories(Reference(wc, min_col=rs, min_row=rh+1, max_row=re))
         for si, color in enumerate(RC[:len(rr)]):
@@ -656,7 +656,7 @@ with st.expander("📋 Cleaning rules reference"):
       <div class="rule-pill"><b>Month</b>Current month; if today = 1st → previous month</div>
       <div class="rule-pill"><b>Name</b>Fuzzy-matched · empty or unknown → row removed</div>
       <div class="rule-pill"><b>Report Name</b>Fuzzy-matched · empty or unknown → row removed</div>
-      <div class="rule-pill"><b>Markets / Regions</b>Fuzzy-matched · empty or unknown → row removed</div>
+      <div class="rule-pill"><b>Regions</b>Fuzzy-matched · empty or unknown → row removed</div>
       <div class="rule-pill"><b>Contract</b>Left as-is · empty → row removed</div>
       <div class="rule-pill"><b>Status</b>Fuzzy-matched · empty or unknown → row removed</div>
       <div class="rule-pill"><b>CM Action Reason</b>Left as-is · empty → "-"</div>
@@ -675,7 +675,7 @@ with st.expander("⚙️ Customise lookup lists & sensitivity"):
     c1, c2 = st.columns(2)
     with c1:
         names_txt   = st.text_area("✅ Valid Names (one per line)",        value="\n".join(DEFAULT_NAMES),           height=200)
-        regions_txt = st.text_area("✅ Valid Markets / Regions (one per line)", value="\n".join(DEFAULT_REGIONS), height=140)
+        regions_txt = st.text_area("✅ Valid Regions (one per line)", value="\n".join(DEFAULT_REGIONS), height=140)
     with c2:
         reports_txt = st.text_area("✅ Valid Report Names (one per line)", value="\n".join(DEFAULT_REPORT_NAMES),    height=160)
         status_txt  = st.text_area("✅ Valid Statuses (one per line)",     value="\n".join(DEFAULT_STATUSES),        height=160)
