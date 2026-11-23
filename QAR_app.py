@@ -203,6 +203,7 @@ DEFAULT_REPORT_NAMES = [
     "SNAP Completed", 
     "SNAP Inactive", 
     "SNAP Pacing",
+    "CM Dashboard",
 ]
 
 DEFAULT_REGIONS = [
